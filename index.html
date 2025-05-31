@@ -523,6 +523,29 @@
             box-shadow: var(--shadow-heavy);
         }
         
+        /* تحسينات الجدول للأجهزة المحمولة */
+        .mobile-table-hint {
+            display: none;
+            text-align: center;
+            background: linear-gradient(90deg, var(--primary1), var(--primary2));
+            color: white;
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-size: 0.95em;
+            font-weight: 600;
+            box-shadow: var(--shadow-light);
+        }
+        
+        .table-responsive-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 20px;
+            box-shadow: var(--shadow-light);
+            margin-bottom: 20px;
+        }
+        
         /* الجدول */
         table {
             width: 100%;
@@ -652,6 +675,39 @@
                 min-width: auto;
                 max-width: none;
             }
+            
+            /* إظهار رسالة التوجيه للجوال */
+            .mobile-table-hint {
+                display: block;
+            }
+            
+            /* تحسينات الجدول للجوال */
+            table {
+                min-width: 700px;
+                font-size: 0.9em;
+            }
+            
+            th, td {
+                padding: 14px 10px !important;
+                white-space: nowrap;
+                min-width: 120px;
+            }
+            
+            /* تحسين النصوص الطويلة */
+            td {
+                max-width: 150px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            /* إظهار النص الكامل عند النقر */
+            td:hover {
+                white-space: normal;
+                max-width: none;
+                background: rgba(9, 201, 146, 0.1);
+                z-index: 10;
+                position: relative;
+            }
         }
         
         @media (max-width: 480px) {
@@ -666,6 +722,17 @@
             .chart-block {
                 width: 100%;
                 padding: 20px 12px;
+            }
+            
+            /* تحسينات إضافية للجداول الصغيرة */
+            table {
+                min-width: 600px;
+                font-size: 0.85em;
+            }
+            
+            th, td {
+                padding: 12px 8px !important;
+                min-width: 100px;
             }
         }
     </style>
@@ -936,31 +1003,38 @@
 
         function buildTable(arr) {
             if (!arr.length) return `<div class="no-data">📋 لا يوجد بيانات مطابقة للبحث</div>`;
-            let html = `<table>
-                <thead>
-                    <tr>
-                        <th>📍 مكان الزيارة</th>
-                        <th>👤 اسم المسؤول</th>
-                        <th>📅 تاريخ الزيارة</th>
-                        <th>📄 هل يوجد تقرير؟</th>
-                        <th>⚡ حالة الجدولة</th>
-                    </tr>
-                </thead>
-                <tbody>`;
+            
+            let html = `
+            <div class="mobile-table-hint">
+                📱 اسحب الجدول يميناً ويساراً لعرض جميع الأعمدة
+            </div>
+            <div class="table-responsive-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>📍 مكان الزيارة</th>
+                            <th>👤 اسم المسؤول</th>
+                            <th>📅 تاريخ الزيارة</th>
+                            <th>📄 هل يوجد تقرير؟</th>
+                            <th>⚡ حالة الجدولة</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
             arr.forEach(item => {
                 const scheduled = item["حالة الجدولة"] === "مجدول";
                 const scheduleBadge = scheduled
                     ? `<span class="scheduled">✅ مجدول</span>`
                     : `<span class="unscheduled">⚠️ غير مجدول</span>`;
                 html += `<tr>
-                        <td>${item["مكان الزيارة"] || ""}</td>
-                        <td>${item["اسم المسؤول"] || ""}</td>
-                        <td>${item["تاريخ الزيارة"] || ""}</td>
-                        <td>${item["هل يوجد تقرير؟"] || ""}</td>
-                        <td>${scheduleBadge}</td>
+                        <td data-label="مكان الزيارة">${item["مكان الزيارة"] || ""}</td>
+                        <td data-label="اسم المسؤول">${item["اسم المسؤول"] || ""}</td>
+                        <td data-label="تاريخ الزيارة">${item["تاريخ الزيارة"] || ""}</td>
+                        <td data-label="هل يوجد تقرير؟">${item["هل يوجد تقرير؟"] || ""}</td>
+                        <td data-label="حالة الجدولة">${scheduleBadge}</td>
                     </tr>`;
             });
-            html += `</tbody></table>`;
+            html += `</tbody></table></div>`;
             return html;
         }
 
