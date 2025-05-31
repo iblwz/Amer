@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>سجلات زيارات المسؤولين</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Chart.js و jsPDF -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+        
+        :root {
+            --primary1: #09C992;
+            --primary2: #0E91A1;
+            --primary3: #09595C;
+            --danger: #df3939;
+            --success: #30c09e;
+            --white: #fff;
+            --light-bg: #f5f8fa;
+            --border: #e5ecef;
+            --accent: #FFBC01;
+            --glass: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --shadow-light: 0 8px 32px rgba(9, 201, 146, 0.15);
+            --shadow-medium: 0 16px 64px rgba(0, 0, 0, 0.1);
+            --shadow-heavy: 0 24px 80px rgba(0, 0, 0, 0.2);
+            --gradient-primary: linear-gradient(135deg, var(--primary1) 0%, var(--primary2) 50%, var(--primary3) 100%);
+            --gradient-card: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 251, 0.8));
+            --gradient-bg: linear-gradient(135deg, #f5f8fa 0%, #e8f4f8 25%, #f0f9f7 50%, #e6f3f7 75%, #f5f8fa 100%);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            margin: 0;
+            background: var(--gradient-bg);
+            font-family: 'Cairo', 'DIN Next LT Arabic', Arial, Tahoma, sans-serif;
+            color: var(--primary3);
+            direction: rtl;
+            line-height: 1.7;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+        }
+        
+        /* خلفية متحركة بسيطة */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--gradient-bg);
+            z-index: -2;
+        }
+        
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 80%, rgba(9, 201, 146, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(14, 145, 161, 0.1) 0%, transparent 50%);
+            z-index: -1;
+            animation: float 20s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(120deg); }
+            66% { transform: translate(-20px, 20px) rotate(240deg); }
+        }
+        
+        /* شاشة التحميل */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(9, 201, 146, 0.95), rgba(14, 145, 161, 0.95));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: all 0.8s ease;
+        }
+        
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        .loading-text {
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        /* الحاوي الرئيسي */
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            background: var(--gradient-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            box-shadow: var(--shadow-heavy);
+            padding: 40px 32px 56px 32px;
+            min-height: 90vh;
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 1s ease;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: var(--gradient-primary);
+            border-radius: 32px 32px 0 0;
+        }
+        
+        /* شريط الشعار */
+        .logo-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 30px;
+            animation: slideInRight 0.8s ease;
+        }
+        
+        .logo-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+            padding: 10px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(9, 201, 146, 0.1));
+            backdrop-filter: blur(10px);
+            transition: all 0.4s ease;
+        }
+        
+        .logo-container:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: var(--shadow-medium);
+        }
+        
+        .logo-bar img {
+            height: 70px;
+            margin-left: 20px;
+            filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15));
+            transition: all 0.4s ease;
+        }
+        
+        /* العنوان */
+        .page-title {
+            font-size: 2.8em;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0 0 30px 0;
+            font-weight: 700;
+            text-align: center;
+            animation: fadeInUp 1s ease 0.3s both;
+            position: relative;
+        }
+        
+        .page-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: var(--gradient-primary);
+            border-radius: 2px;
+        }
+        
+        /* الإحصائيات */
+        .top-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+            animation: fadeInUp 1s ease 0.5s both;
+        }
+        
+        .stat-card {
+            background: var(--gradient-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: var(--shadow-light);
+            padding: 28px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            cursor: pointer;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(9, 201, 146, 0.1), transparent);
+            transition: left 0.6s;
+        }
+        
+        .stat-card:hover::before {
+            left: 100%;
+        }
+        
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+            border-radius: 24px 24px 0 0;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-12px) scale(1.02);
+            box-shadow: var(--shadow-heavy);
+        }
+        
+        .stat-card:hover::after {
+            transform: scaleX(1);
+        }
+        
+        /* الأيقونات */
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 16px;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+            transition: all 0.4s ease;
+            animation: pulse 3s infinite;
+        }
+        
+        .stat-card:hover .stat-icon {
+            transform: scale(1.1) rotate(5deg);
+            filter: drop-shadow(0 8px 16px rgba(9, 201, 146, 0.3));
+        }
+        
+        /* إيموجي احتياطي إذا لم تكن الصور متوفرة */
+        .stat-icon-emoji {
+            font-size: 2.5em;
+            margin-bottom: 12px;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: pulse 2s infinite;
+        }
+        
+        .stat-label {
+            font-size: 1.2em;
+            color: var(--primary2);
+            margin-bottom: 12px;
+            font-weight: 600;
+            text-align: center;
+            transition: color 0.3s ease;
+        }
+        
+        .stat-card:hover .stat-label {
+            color: var(--primary1);
+        }
+        
+        .stat-value {
+            font-size: 3em;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* المخطط */
+        .chart-block {
+            width: 450px;
+            margin: 32px auto 40px auto;
+            background: var(--gradient-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 28px;
+            box-shadow: var(--shadow-light);
+            padding: 32px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: fadeInUp 1s ease 0.7s both;
+            transition: all 0.4s ease;
+        }
+        
+        .chart-block:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-heavy);
+        }
+        
+        .chart-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: var(--primary3);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        /* شريط البحث */
+        .search-bar {
+            margin: 32px auto;
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            animation: fadeInUp 1s ease 0.9s both;
+            background: var(--gradient-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: var(--shadow-light);
+        }
+        
+        .search-input-container {
+            position: relative;
+            flex: 1;
+            min-width: 300px;
+            max-width: 400px;
+        }
+        
+        .search-bar input[type="text"] {
+            font-size: 1.1em;
+            padding: 16px 24px 16px 50px;
+            border-radius: 16px;
+            border: 2px solid transparent;
+            background: var(--white);
+            outline: none;
+            width: 100%;
+            font-family: 'Cairo', Arial, sans-serif;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.4s ease;
+        }
+        
+        .search-icon {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2em;
+            color: var(--primary2);
+        }
+        
+        .search-bar input[type="text"]:focus {
+            border-color: var(--primary1);
+            box-shadow: 0 0 0 4px rgba(9, 201, 146, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .filter-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            background: var(--gradient-primary);
+            color: #fff;
+            border: none;
+            border-radius: 16px;
+            padding: 16px 28px;
+            font-size: 1.05em;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.4s ease;
+            box-shadow: var(--shadow-light);
+        }
+        
+        .filter-btn:hover {
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: var(--shadow-medium);
+        }
+        
+        .filter-btn.active {
+            background: var(--primary2);
+            animation: pulse 2s infinite;
+        }
+        
+        /* باقي العناصر */
+        #status {
+            text-align: center;
+            font-size: 1.3em;
+            color: var(--primary3);
+            margin-bottom: 32px;
+            padding: 24px;
+            background: var(--gradient-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: var(--shadow-light);
+        }
+        
+        .visit-today {
+            background: var(--gradient-primary);
+            color: #fff;
+            font-weight: 600;
+            border-radius: 20px;
+            padding: 24px 32px;
+            margin: 20px 0;
+            display: inline-block;
+            font-size: 1.2em;
+            box-shadow: var(--shadow-light);
+            transition: all 0.4s ease;
+            animation: fadeInUp 0.8s ease;
+        }
+        
+        .visit-today:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: var(--shadow-heavy);
+        }
+        
+        .print-btn, .whatsapp-btn {
+            padding: 16px 32px;
+            border-radius: 16px;
+            border: none;
+            font-weight: 600;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin: 8px 12px;
+            transition: all 0.4s ease;
+            box-shadow: var(--shadow-light);
+        }
+        
+        .print-btn {
+            background: var(--gradient-primary);
+            color: #fff;
+        }
+        
+        .whatsapp-btn {
+            background: linear-gradient(135deg, #25d366, #128c7e);
+            color: #fff;
+        }
+        
+        .print-btn:hover, .whatsapp-btn:hover {
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: var(--shadow-heavy);
+        }
+        
+        /* الجدول */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 32px;
+            font-size: 1.1em;
+            box-shadow: var(--shadow-light);
+            background: var(--gradient-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            overflow: hidden;
+            animation: fadeInUp 1s ease 1.2s both;
+        }
+        
+        th, td {
+            padding: 20px 16px;
+            border-bottom: 1px solid rgba(9, 201, 146, 0.1);
+            text-align: center;
+            transition: all 0.4s ease;
+        }
+        
+        th {
+            background: var(--gradient-primary);
+            color: #fff;
+            font-weight: 600;
+            font-size: 1.15em;
+        }
+        
+        tbody tr:hover {
+            background: linear-gradient(90deg, rgba(9, 201, 146, 0.1), rgba(9, 201, 146, 0.15)) !important;
+            transform: scale(1.01);
+        }
+        
+        .scheduled, .unscheduled {
+            font-weight: 600;
+            border-radius: 16px;
+            padding: 10px 20px;
+            display: inline-block;
+            transition: all 0.4s ease;
+        }
+        
+        .scheduled {
+            background: var(--gradient-primary);
+            color: #fff;
+            box-shadow: var(--shadow-light);
+        }
+        
+        .unscheduled {
+            background: #fff;
+            color: var(--danger);
+            border: 2px solid var(--danger);
+        }
+        
+        ul {
+            margin: 16px 0 20px 0;
+            padding-right: 28px;
+        }
+        
+        ul li {
+            margin-bottom: 14px;
+            color: var(--primary2);
+            font-size: 1.15em;
+            line-height: 1.9;
+            transition: all 0.4s ease;
+            padding: 12px 0;
+        }
+        
+        ul li:hover {
+            color: var(--primary1);
+            transform: translateX(-8px);
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            animation: fadeInUp 1s ease;
+        }
+        
+        .no-data {
+            text-align: center;
+            color: var(--primary3);
+            padding: 48px 0;
+            background: var(--gradient-card);
+            border-radius: 20px;
+            box-shadow: var(--shadow-light);
+            font-size: 1.3em;
+        }
+        
+        .print-section {
+            display: none;
+        }
+        
+        /* للطباعة */
+        @media print {
+            body, html {
+                background: #fff !important;
+                color: #000 !important;
+            }
+            .print-section {
+                display: block !important;
+            }
+            .container > *:not(.print-section) {
+                display: none !important;
+            }
+        }
+        
+        /* التصميم المتجاوب */
+        @media (max-width: 1024px) {
+            .container {
+                margin: 15px;
+                padding: 28px 20px;
+            }
+            .chart-block {
+                width: 95%;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .page-title {
+                font-size: 2.2em;
+            }
+            .search-bar {
+                flex-direction: column;
+                gap: 16px;
+            }
+            .search-input-container {
+                min-width: auto;
+                max-width: none;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                margin: 8px;
+                padding: 20px 16px;
+            }
+            .top-stats {
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+            }
+            .chart-block {
+                width: 100%;
+                padding: 20px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- شاشة التحميل -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">جاري تحميل سجلات الزيارات...</div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- شريط الشعار -->
+        <div class="logo-bar" data-aos="fade-right">
+            <div class="logo-container">
+                <img src="logo.png" alt="الشعار" onerror="this.style.display='none'">
+            </div>
+        </div>
+        
+        <!-- العنوان -->
+        <div class="page-title" data-aos="fade-up" data-aos-delay="200">
+            سجلات زيارات المسؤولين
+        </div>
+        
+        <!-- الإحصائيات -->
+        <div class="top-stats" id="statsRow" data-aos="fade-up" data-aos-delay="400"></div>
+        
+        <!-- المخطط -->
+        <div class="chart-block" data-aos="zoom-in" data-aos-delay="600">
+            <div class="chart-title">📊 توزيع الزيارات</div>
+            <canvas id="chartPie" width="350" height="220"></canvas>
+        </div>
+        
+        <!-- شريط البحث -->
+        <div class="search-bar" data-aos="fade-up" data-aos-delay="800">
+            <div class="search-input-container">
+                <input type="text" id="searchBox" placeholder="ابحث باسم المسؤول أو المكان أو التاريخ..." oninput="filterTable()">
+                <span class="search-icon">🔍</span>
+            </div>
+            <div class="filter-buttons">
+                <button class="filter-btn" id="allBtn" onclick="setFilter('all')">📋 الكل</button>
+                <button class="filter-btn" id="scheduledBtn" onclick="setFilter('scheduled')">✅ مجدول فقط</button>
+                <button class="filter-btn" id="unscheduledBtn" onclick="setFilter('unscheduled')">⚠️ غير مجدول فقط</button>
+            </div>
+        </div>
+        
+        <!-- حالة المعلومات -->
+        <div id="status">جاري جلب البيانات...</div>
+        
+        <!-- أقسام المحتوى -->
+        <div class="section" id="todaySection" data-aos="fade-up" data-aos-delay="1000"></div>
+        <div class="section" id="tableSection" data-aos="fade-up" data-aos-delay="1200"></div>
+        <div class="print-section" id="printSection"></div>
+    </div>
+    
+    <script>
+        // إخفاء شاشة التحميل
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                loadingOverlay.style.opacity = '0';
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none';
+                }, 500);
+            }, 1000);
+        });
+
+        // تهيئة AOS
+        if (typeof AOS !== 'undefined') {
+            AOS.init({
+                duration: 800,
+                easing: 'ease-in-out',
+                once: true,
+                offset: 50
+            });
+        }
+
+        const webhookUrl = 'https://iblwz.site/webhook/01d0b1c0-3e90-4059-a984-4966c2772e44';
+
+        function getToday() {
+            const d = new Date();
+            let mm = (d.getMonth() + 1).toString().padStart(2, "0");
+            let dd = d.getDate().toString().padStart(2, "0");
+            return `${d.getFullYear()}/${mm}/${dd}`;
+        }
+        
+        function toDateNum(str) {
+            if (!str) return 0;
+            let parts = str.replace(/-/g,"/").split('/');
+            if(parts.length<3) return 0;
+            return Number(parts[0] + parts[1].padStart(2,"0") + parts[2].padStart(2,"0"));
+        }
+        
+        const today = getToday();
+        const todayNum = toDateNum(today);
+        let allData = [], filteredData = [], todayVisitsData = [];
+        let currentFilter = 'all';
+
+        document.getElementById("status").style.display = "block";
+        document.getElementById("status").innerText = "🔄 جاري جلب البيانات من الخادم...";
+
+        fetch(webhookUrl)
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return res.json();
+            })
+            .then(items => {
+                allData = items || [];
+                document.getElementById("status").style.display = "none";
+                processData();
+            })
+            .catch(err => {
+                document.getElementById("status").style.display = "block";
+                document.getElementById("status").innerText = "❌ فشل في جلب البيانات من الخادم";
+                console.error('خطأ في جلب البيانات:', err);
+                
+                // بيانات تجريبية للاختبار
+                allData = [
+                    {
+                        "اسم المسؤول": "أحمد محمد",
+                        "مكان الزيارة": "الرياض",
+                        "تاريخ الزيارة": today,
+                        "هل يوجد تقرير؟": "نعم",
+                        "حالة الجدولة": "مجدول"
+                    },
+                    {
+                        "اسم المسؤول": "سارة أحمد",
+                        "مكان الزيارة": "جدة",
+                        "تاريخ الزيارة": "2025/06/01",
+                        "هل يوجد تقرير؟": "لا",
+                        "حالة الجدولة": "غير مجدول"
+                    }
+                ];
+                document.getElementById("status").style.display = "none";
+                processData();
+            });
+
+        function processData() {
+            let todayVisits = [], upcomingVisits = [], pastVisits = [];
+            let total = allData.length;
+            let scheduled = 0, unscheduled = 0, todayCount = 0;
+
+            allData.forEach(item => {
+                let dateStr = (item["تاريخ الزيارة"]||"").replace(/-/g,"/").trim();
+                let visitNum = toDateNum(dateStr);
+                let isScheduled = item["حالة الجدولة"] === "مجدول";
+                if (isScheduled) scheduled++;
+                else unscheduled++;
+                if(visitNum === todayNum) {
+                    todayVisits.push(item);
+                    todayCount++;
+                }
+                else if(visitNum > todayNum) upcomingVisits.push(item);
+                else if(visitNum && visitNum < todayNum) pastVisits.push(item);
+            });
+            todayVisitsData = todayVisits;
+
+            updateStats(total, scheduled, unscheduled, todayCount);
+            drawPie(scheduled, unscheduled);
+            updateToday(todayVisits);
+            filteredData = allData;
+            setFilter(currentFilter, true);
+        }
+
+        function updateStats(total, scheduled, unscheduled, todayCount){
+            let html = `
+            <div class="stat-card" data-aos="flip-left" data-aos-delay="100">
+                <img src="icon-total.png" alt="مجموع الزيارات" class="stat-icon" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="stat-icon-emoji" style="display:none;">📊</div>
+                <div class="stat-label">مجموع الزيارات</div>
+                <div class="stat-value">${total}</div>
+            </div>
+            <div class="stat-card" data-aos="flip-left" data-aos-delay="200">
+                <img src="icon-scheduled.png" alt="مجدولة" class="stat-icon" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="stat-icon-emoji" style="display:none;">✅</div>
+                <div class="stat-label">مجدولة</div>
+                <div class="stat-value">${scheduled}</div>
+            </div>
+            <div class="stat-card" data-aos="flip-left" data-aos-delay="300">
+                <img src="icon-unscheduled.png" alt="غير مجدولة" class="stat-icon" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="stat-icon-emoji" style="display:none;">⚠️</div>
+                <div class="stat-label">غير مجدولة</div>
+                <div class="stat-value">${unscheduled}</div>
+            </div>
+            <div class="stat-card" data-aos="flip-left" data-aos-delay="400">
+                <img src="icon-today.png" alt="زيارات اليوم" class="stat-icon" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="stat-icon-emoji" style="display:none;">🎯</div>
+                <div class="stat-label">زيارات اليوم</div>
+                <div class="stat-value">${todayCount}</div>
+            </div>
+            `;
+            document.getElementById("statsRow").innerHTML = html;
+        }
+
+        // Chart.js
+        let pieChart;
+        function drawPie(scheduled, unscheduled) {
+            const canvas = document.getElementById('chartPie');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            if (pieChart) { pieChart.destroy(); }
+            
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js غير محمل');
+                return;
+            }
+            
+            pieChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['مجدول', 'غير مجدول'],
+                    datasets: [{
+                        data: [scheduled, unscheduled],
+                        backgroundColor: ['#09C992', '#df3939'],
+                        borderColor: ['#fff', '#fff'],
+                        borderWidth: 4,
+                        hoverBorderWidth: 6,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 16, weight: 'bold' },
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateToday(todayVisits){
+            let todaySection = document.getElementById("todaySection");
+            let printBtn = '', whatsappBtn = '';
+            
+            if (todayVisits.length > 0) {
+                printBtn = `<button class="print-btn" onclick="printTodayReport()">📄 طباعة تقرير الزيارة</button>`;
+                whatsappBtn = `<button class="whatsapp-btn" onclick="sendWhatsAppText()">📱 إرسال واتساب</button>`;
+            }
+            
+            if (todayVisits.length === 0) {
+                todaySection.innerHTML = `<div class="visit-today">📅 لا يوجد زيارات مجدولة اليوم (${today})</div>`;
+            } else {
+                let msg = `<div class="visit-today">🎯 لديك ${todayVisits.length} زيارة مجدولة اليوم (${today})</div>`;
+                msg += '<ul>';
+                todayVisits.forEach(item => {
+                    msg += `<li>المسؤول <b>${item["اسم المسؤول"]||"-"}</b> سيزور <b>${item["مكان الزيارة"]||"-"}</b></li>`;
+                });
+                msg += '</ul>';
+                msg += printBtn;
+                msg += whatsappBtn;
+                todaySection.innerHTML = msg;
+            }
+        }
+
+        function buildTable(arr) {
+            if (!arr.length) return `<div class="no-data">📋 لا يوجد بيانات مطابقة للبحث</div>`;
+            let html = `<table>
+                <thead>
+                    <tr>
+                        <th>📍 مكان الزيارة</th>
+                        <th>👤 اسم المسؤول</th>
+                        <th>📅 تاريخ الزيارة</th>
+                        <th>📄 هل يوجد تقرير؟</th>
+                        <th>⚡ حالة الجدولة</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            arr.forEach(item => {
+                const scheduled = item["حالة الجدولة"] === "مجدول";
+                const scheduleBadge = scheduled
+                    ? `<span class="scheduled">✅ مجدول</span>`
+                    : `<span class="unscheduled">⚠️ غير مجدول</span>`;
+                html += `<tr>
+                        <td>${item["مكان الزيارة"] || ""}</td>
+                        <td>${item["اسم المسؤول"] || ""}</td>
+                        <td>${item["تاريخ الزيارة"] || ""}</td>
+                        <td>${item["هل يوجد تقرير؟"] || ""}</td>
+                        <td>${scheduleBadge}</td>
+                    </tr>`;
+            });
+            html += `</tbody></table>`;
+            return html;
+        }
+
+        function filterTable(){
+            let val = document.getElementById('searchBox').value.trim().toLowerCase();
+            let arr = allData.filter(item => {
+                let s = (item["اسم المسؤول"]||"") + " " + (item["مكان الزيارة"]||"") + " " + (item["تاريخ الزيارة"]||"");
+                s = s.toLowerCase();
+                let match = s.includes(val);
+                if(currentFilter === 'all') return match;
+                if(currentFilter === 'scheduled' && item["حالة الجدولة"] === "مجدول") return match;
+                if(currentFilter === 'unscheduled' && item["حالة الجدولة"] !== "مجدول") return match;
+                return false;
+            });
+            
+            document.getElementById('tableSection').innerHTML = buildTable(arr);
+        }
+        
+        function setFilter(f, skipInput){
+            currentFilter = f;
+            document.getElementById('allBtn').classList.remove('active');
+            document.getElementById('scheduledBtn').classList.remove('active');
+            document.getElementById('unscheduledBtn').classList.remove('active');
+            if(f==='all') document.getElementById('allBtn').classList.add('active');
+            else if(f==='scheduled') document.getElementById('scheduledBtn').classList.add('active');
+            else if(f==='unscheduled') document.getElementById('unscheduledBtn').classList.add('active');
+            if(!skipInput) document.getElementById('searchBox').value = '';
+            filterTable();
+        }
+        setFilter('all',true);
+
+        function sendWhatsAppText() {
+            let number = prompt('📱 ادخل رقم الجوال مع كود الدولة مثل: 9665XXXXXXXX');
+            if (!number || !/^9665\d{8}$/.test(number)) {
+                if(number) alert('❌ رقم غير صحيح. مثال صحيح: 9665XXXXXXXX');
+                return;
+            }
+            
+            let waMsg = getReportMessage();
+            window.open(`https://wa.me/${number}?text=${waMsg}`, '_blank');
+        }
+
+        function getReportMessage() {
+            let msg = '📋 تقرير زيارات اليوم%0A';
+            msg += `📅 التاريخ: ${today}%0A`;
+            msg += '═══════════════════%0A%0A';
+            
+            if (!todayVisitsData || !todayVisitsData.length) {
+                msg += '❌ لا يوجد زيارات مجدولة اليوم.%0A%0A';
+                return msg;
+            }
+            
+            todayVisitsData.forEach((item, idx) => {
+                msg += `🔸 الزيارة رقم ${idx+1}%0A`;
+                msg += `👤 المسؤول: ${item["اسم المسؤول"]||"-"}%0A`;
+                msg += `📍 المكان: ${item["مكان الزيارة"]||"-"}%0A`;
+                msg += `📅 التاريخ: ${item["تاريخ الزيارة"]||"-"}%0A`;
+                msg += `⚡ الحالة: ${item["حالة الجدولة"]||"-"}%0A`;
+                msg += '─────────────────%0A';
+            });
+            
+            msg += `%0A✅ يرجى من المسؤول الكريم القيام بالزيارة المجدولة لهذا اليوم والتأكد من إتمام جميع الإجراءات.%0A%0A`;
+            msg += '🏢 نظام إدارة زيارات المسؤولين';
+            
+            return msg;
+        }
+        
+        window.printTodayReport = function() {
+            let visits = todayVisitsData;
+            if (!visits || !visits.length) {
+                alert("❌ لا يوجد زيارات مجدولة اليوم للطباعة.");
+                return;
+            }
+            
+            let html = `
+                <div class="logo-bar">
+                    <img src="logo.png" alt="الشعار" style="height: 60px;">
+                </div>
+                <div class="page-title">📋 تقرير زيارات اليوم (${today})</div>
+                <hr style="margin-bottom:32px; border: 2px solid #09C992;">
+            `;
+            
+            visits.forEach((item, idx) => {
+                html += `
+                <div style="margin-bottom:40px; padding: 20px; border: 1px solid #e5ecef; border-radius: 12px;">
+                    <div style="font-size:1.2em;font-weight:bold;margin-bottom:12px;color:#09595C; background: #f5f8fa; padding: 10px; border-radius: 8px;">
+                        🔸 الزيارة رقم ${idx+1}
+                    </div>
+                    <div style="margin-bottom:10px; padding: 8px 0;">
+                        <b>👤 اسم المسؤول:</b> ${item["اسم المسؤول"]||"-"}
+                    </div>
+                    <div style="margin-bottom:10px; padding: 8px 0;">
+                        <b>📍 مكان الزيارة:</b> ${item["مكان الزيارة"]||"-"}
+                    </div>
+                    <div style="margin-bottom:10px; padding: 8px 0;">
+                        <b>📅 تاريخ الزيارة:</b> ${item["تاريخ الزيارة"]||"-"}
+                    </div>
+                    <div style="margin-bottom:10px; padding: 8px 0;">
+                        <b>⚡ حالة الجدولة:</b> ${item["حالة الجدولة"]||"-"}
+                    </div>
+                </div>`;
+            });
+
+            document.getElementById("printSection").innerHTML = html;
+            setTimeout(() => window.print(), 1000);
+        }
+    </script>
+</body>
+</html>
